@@ -34,7 +34,7 @@ class MainMenu(Screen):
             color=(1, 1, 1, 1),
             background_color=(0, 0.5, 1, 1)
         )
-
+        
         picBtn.bind(on_press=self.goShowPicsPage)
         dataBtn.bind(on_press=self.goDataPage)
         
