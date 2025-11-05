@@ -119,6 +119,9 @@ class DataPage(Screen):
             self.magneticFieldLabel.text = f"Magnetic field: {data[2]}"
         except Exception as e:
             msg = f"Error: {e}"
+            self.tempLabel.text = "Temperature:"
+            self.humidityLabel.text = "Humidity:"
+            self.magneticFieldLabel.text = "Magnetic field:"
         # update label on main thread
         print(msg)
     
