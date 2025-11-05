@@ -1,17 +1,22 @@
+# kivy_client_fixed.py
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.label import Label
+import socket
 
 
-# MAIN MENU
+ESP_IP = "192.168.4.1"
+ESP_PORT = 1234
+
+# ----------------- MAIN MENU -----------------
 class MainMenu(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = BoxLayout(orientation="horizontal", padding=20, spacing=15)
 
-        
         dataBtn = Button(
             text="DATA",
             size_hint=(None, None),
@@ -20,8 +25,6 @@ class MainMenu(Screen):
             color=(1, 1, 1, 1),
             background_color=(0, 0.5, 1, 1)
         )
-
-        
         picBtn = Button(
             text="PICTURES",
             size_hint=(None, None),
@@ -31,30 +34,26 @@ class MainMenu(Screen):
             background_color=(0, 0.5, 1, 1)
         )
 
-        
         picBtn.bind(on_press=self.goShowPicsPage)
         dataBtn.bind(on_press=self.goDataPage)
 
-        
         layout.add_widget(dataBtn)
         layout.add_widget(picBtn)
         self.add_widget(layout)
 
-    
     def goDataPage(self, instance):
         self.manager.current = "data"
 
-    
     def goShowPicsPage(self, instance):
-        self.manager.current = "pics"  
+        self.manager.current = "pics"
 
-
-# DATA PAGE
+# ----------------- DATA PAGE -----------------
 class DataPage(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        layout = FloatLayout()
-
+        self.layout = FloatLayout()
+        self.data_label = Label(text="", pos_hint={'x':0.3,'y':0.5}, font_size=20)
+        
         showDataBtn = Button(
             text="show data",
             size_hint=(None, None),
@@ -62,7 +61,6 @@ class DataPage(Screen):
             pos_hint={'x': 0.5, 'y': 0.05},
             background_color=(0, 0.5, 1, 1)
         )
-
         backBtn = Button(
             text="back",
             size_hint=(None, None),
@@ -71,51 +69,57 @@ class DataPage(Screen):
             background_color=(0, 0.5, 1, 1)
         )
         backBtn.bind(on_press=self.goBack)
+        showDataBtn.bind(on_press=self.showData_thread)
 
-        layout.add_widget(showDataBtn)
-        layout.add_widget(backBtn)
-        self.add_widget(layout)
+        self.layout.add_widget(showDataBtn)
+        self.layout.add_widget(backBtn)
+        self.layout.add_widget(self.data_label)
+        self.add_widget(self.layout)
 
-    def goBack(self,instance):
+
+
+    def showData(self):
+        try:
+            s = socket.socket()
+            s.settimeout(3)
+            s.connect((ESP_IP, ESP_PORT))
+            s.send(b"request\n")
+            data = s.recv(1024)
+            s.close()
+            msg = data.decode()
+        except Exception as e:
+            msg = f"Error: {e}"
+        # update label on main thread
+        print(msg)
+
+
+
+    def goBack(self, instance):
         self.manager.current = "menu"
 
-# PICTURES PAGE
+# ----------------- PICTURES PAGE -----------------
 class PicturesPage(Screen):
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        layout=FloatLayout()
+        layout = FloatLayout()
 
-        leftBtn = Button(
-            text="<-",
-            size_hint=(None, None),
-            size=(70, 80),
-            pos_hint={'x': 0.10, 'y': 0.5},
-            background_color=(0, 0.5, 1, 1)
-        )
-
-        rightBtn = Button(
-            text="->",
-            size_hint=(None, None),
-            size=(70, 80),
-            pos_hint={'x': 0.20, 'y': 0.5},
-            background_color=(0, 0.5, 1, 1)
-        )
-        backBtn = Button(
-            text="back",
-            size_hint=(None, None),
-            size=(70, 80),
-            pos_hint={'x': 0.1, 'y': 0.05},
-            background_color=(0, 0.5, 1, 1)
-
-        )
+        leftBtn = Button(text="<-", size_hint=(None, None), size=(70, 80), pos_hint={'x': 0.10, 'y': 0.5},
+                         background_color=(0, 0.5, 1, 1))
+        rightBtn = Button(text="->", size_hint=(None, None), size=(70, 80), pos_hint={'x': 0.20, 'y': 0.5},
+                          background_color=(0, 0.5, 1, 1))
+        backBtn = Button(text="back", size_hint=(None, None), size=(70, 80), pos_hint={'x': 0.1, 'y': 0.05},
+                         background_color=(0, 0.5, 1, 1))
         backBtn.bind(on_press=self.goBack)
+
         layout.add_widget(leftBtn)
         layout.add_widget(rightBtn)
         layout.add_widget(backBtn)
         self.add_widget(layout)
-    def goBack(self,instance):
+
+    def goBack(self, instance):
         self.manager.current = "menu"
-#  APP 
+
+# ----------------- APP -----------------
 class droneGui(App):
     def build(self):
         sm = ScreenManager()
@@ -124,7 +128,6 @@ class droneGui(App):
         sm.add_widget(PicturesPage(name="pics"))
         return sm
 
-
-#  RUN 
+# ----------------- RUN -----------------
 if __name__ == "__main__":
     droneGui().run()
