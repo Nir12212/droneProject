@@ -1,13 +1,13 @@
-# kivy_client_fixed.py
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
+from kivy.uix.image import Image
 import socket
 import json
-
+ 
 
 ESP_IP = "192.168.4.1"
 ESP_PORT = 1234
@@ -68,14 +68,20 @@ class DataPage(Screen):
             size_hint=(None, None),
             pos_hint={'x': 0.03, 'y': 0.75}
         )
-        self.magneticFieldLabel = Label(
-            text = "Magnetic field:",
+        self.airPressureLabel = Label(
+            text = "Air Pressure:",
             color=(1, 1, 1, 1),
             font_size=20,
             size_hint=(None, None),
-            pos_hint={'x': 0.06, 'y': 0.65}
+            pos_hint={'x': 0.05, 'y': 0.65}
         )
-
+        self.magneticFieldLabel = Label(
+            text = "Magnetic Field:",
+            color=(1, 1, 1, 1),
+            font_size=20,
+            size_hint=(None, None),
+            pos_hint={'x': 0.06, 'y': 0.55}
+        )
         showDataBtn = Button(
             text="show data",
             size_hint=(None, None),
@@ -96,6 +102,7 @@ class DataPage(Screen):
 
         layout.add_widget(self.tempLabel)
         layout.add_widget(self.humidityLabel)
+        layout.add_widget(self.airPressureLabel)
         layout.add_widget(self.magneticFieldLabel)
         layout.add_widget(showDataBtn)
         layout.add_widget(backBtn)
@@ -116,12 +123,15 @@ class DataPage(Screen):
             data = json.loads(msg)
             self.tempLabel.text = f"Temperature: {data[0]}"
             self.humidityLabel.text = f"Humidity: {data[1]}"
-            self.magneticFieldLabel.text = f"Magnetic field: {data[2]}"
+            self.airPressureLabel.text = f"Air Pressure: {data[2]}"
+            self.magneticFieldLabel.text = f"Magnetic Field: {data[3]}"
         except Exception as e:
             msg = f"Error: {e}"
             self.tempLabel.text = "Temperature:"
             self.humidityLabel.text = "Humidity:"
-            self.magneticFieldLabel.text = "Magnetic field:"
+            self.airPressureLabel.text = "Air Pressure:"
+            self.magneticFieldLabel.text = f"Magnetic Field:"
+
         # update label on main thread
         print(msg)
     
@@ -136,19 +146,63 @@ class PicturesPage(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         layout = FloatLayout()
+        self.imageArray = ["warsaw.jpeg","gioza.jpeg","water.jpeg"]
+        self.imageNum = 0
+        self.image = Image(
+            source = self.imageArray[self.imageNum],
+            allow_stretch=True,
+            keep_ratio=True,
+            size_hint=(0.8, 0.8),
+            pos_hint={'x':0.1, 'y':0.1}
+        )
 
-        leftBtn = Button(text="<-", size_hint=(None, None), size=(70, 80), pos_hint={'x': 0.10, 'y': 0.5},
-                         background_color=(0, 0.5, 1, 1))
-        rightBtn = Button(text="->", size_hint=(None, None), size=(70, 80), pos_hint={'x': 0.20, 'y': 0.5},
-                          background_color=(0, 0.5, 1, 1))
-        backBtn = Button(text="back", size_hint=(None, None), size=(70, 80), pos_hint={'x': 0.1, 'y': 0.05},
-                         background_color=(0, 0.5, 1, 1))
+
+
+        leftBtn = Button(
+            text="<-",
+            size_hint=(None, None),
+            size=(70, 80),
+            pos_hint={'x': 0.10, 'y': 0.5},
+            background_color=(0, 0.5, 1, 1)
+            )
+
+
+        rightBtn = Button(
+            text="->",
+            size_hint=(None, None),
+            size=(70, 80), 
+            pos_hint={'x': 0.20, 'y': 0.5},
+            background_color=(0, 0.5, 1, 1)
+            )
+
+
+        backBtn = Button(
+            text="back", 
+            size_hint=(None, None), 
+            size=(70, 80), 
+            pos_hint={'x': 0.1, 'y': 0.05},
+            background_color=(0, 0.5, 1, 1)
+            )
+
+        rightBtn.bind(on_press=self.nextPic)
+        leftBtn.bind(on_press=self.prevPic)
         backBtn.bind(on_press=self.goBack)
 
+
+        layout.add_widget(self.image)
         layout.add_widget(leftBtn)
         layout.add_widget(rightBtn)
         layout.add_widget(backBtn)
         self.add_widget(layout)
+
+    def nextPic(self,instance):
+        self.imageNum= (self.imageNum + 1) % len(self.imageArray)
+        self.image.source = self.imageArray[self.imageNum]
+        self.image.reload()
+    def prevPic(self,instance):
+        self.imageNum= (self.imageNum - 1) % len(self.imageArray)
+        self.image.source = self.imageArray[self.imageNum]
+        self.image.reload()
 
     def goBack(self, instance):
         self.manager.current = "menu"
