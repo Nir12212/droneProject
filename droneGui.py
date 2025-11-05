@@ -6,6 +6,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 import socket
+import json
 
 
 ESP_IP = "192.168.4.1"
@@ -36,7 +37,7 @@ class MainMenu(Screen):
 
         picBtn.bind(on_press=self.goShowPicsPage)
         dataBtn.bind(on_press=self.goDataPage)
-
+        
         layout.add_widget(dataBtn)
         layout.add_widget(picBtn)
         self.add_widget(layout)
@@ -51,9 +52,30 @@ class MainMenu(Screen):
 class DataPage(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.layout = FloatLayout()
-        self.data_label = Label(text="", pos_hint={'x':0.3,'y':0.5}, font_size=20)
-        
+        layout = FloatLayout()
+
+        self.tempLabel = Label(
+            text="Temperature:",
+            color=(1, 1, 1, 1),
+            font_size=20,
+            size_hint=(None, None),
+            pos_hint={'x': 0.05, 'y': 0.85}
+        )
+        self.humidityLabel = Label(
+            text = "Humidity:",
+            color=(1, 1, 1, 1),
+            font_size=20,
+            size_hint=(None, None),
+            pos_hint={'x': 0.03, 'y': 0.75}
+        )
+        self.magneticFieldLabel = Label(
+            text = "Magnetic field:",
+            color=(1, 1, 1, 1),
+            font_size=20,
+            size_hint=(None, None),
+            pos_hint={'x': 0.06, 'y': 0.65}
+        )
+
         showDataBtn = Button(
             text="show data",
             size_hint=(None, None),
@@ -61,6 +83,7 @@ class DataPage(Screen):
             pos_hint={'x': 0.5, 'y': 0.05},
             background_color=(0, 0.5, 1, 1)
         )
+
         backBtn = Button(
             text="back",
             size_hint=(None, None),
@@ -69,16 +92,19 @@ class DataPage(Screen):
             background_color=(0, 0.5, 1, 1)
         )
         backBtn.bind(on_press=self.goBack)
-        showDataBtn.bind(on_press=self.showData_thread)
+        showDataBtn.bind(on_press=self.getData)
 
-        self.layout.add_widget(showDataBtn)
-        self.layout.add_widget(backBtn)
-        self.layout.add_widget(self.data_label)
-        self.add_widget(self.layout)
+        layout.add_widget(self.tempLabel)
+        layout.add_widget(self.humidityLabel)
+        layout.add_widget(self.magneticFieldLabel)
+        layout.add_widget(showDataBtn)
+        layout.add_widget(backBtn)
+        
+        self.add_widget(layout)
 
 
 
-    def showData(self):
+    def getData(self,instance):
         try:
             s = socket.socket()
             s.settimeout(3)
@@ -87,10 +113,15 @@ class DataPage(Screen):
             data = s.recv(1024)
             s.close()
             msg = data.decode()
+            data = json.loads(msg)
+            self.tempLabel.text = f"Temperature: {data[0]}"
+            self.humidityLabel.text = f"Humidity: {data[1]}"
+            self.magneticFieldLabel.text = f"Magnetic field: {data[2]}"
         except Exception as e:
             msg = f"Error: {e}"
         # update label on main thread
         print(msg)
+    
 
 
 
