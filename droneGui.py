@@ -10,9 +10,9 @@ import json
  
 
 ESP_IP = "192.168.4.1"
-ESP_PORT = 1234
-
-# ----------------- MAIN MENU -----------------
+DATA_PORT = 1234
+PIC_PORT = 1235
+#MAIN MENU
 class MainMenu(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -47,8 +47,7 @@ class MainMenu(Screen):
 
     def goShowPicsPage(self, instance):
         self.manager.current = "pics"
-
-# ----------------- DATA PAGE -----------------
+#   DATA PAGE
 class DataPage(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -115,8 +114,8 @@ class DataPage(Screen):
         try:
             s = socket.socket()
             s.settimeout(3)
-            s.connect((ESP_IP, ESP_PORT))
-            s.send(b"request\n")
+            s.connect((ESP_IP, DATA_PORT))
+            s.send(b"requestData\n")
             data = s.recv(1024)
             s.close()
             msg = data.decode()
@@ -132,7 +131,6 @@ class DataPage(Screen):
             self.airPressureLabel.text = "Air Pressure:"
             self.magneticFieldLabel.text = f"Magnetic Field:"
 
-        # update label on main thread
         print(msg)
     
 
@@ -141,12 +139,12 @@ class DataPage(Screen):
     def goBack(self, instance):
         self.manager.current = "menu"
 
-# ----------------- PICTURES PAGE -----------------
+# PICTURES PAGE 
 class PicturesPage(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        layout = FloatLayout()
-        self.imageArray = ["warsaw.jpeg","gioza.jpeg","water.jpeg"]
+        self.layout = FloatLayout()
+        self.imageArray = []
         self.imageNum = 0
         self.image = Image(
             source = self.imageArray[self.imageNum],
@@ -157,7 +155,12 @@ class PicturesPage(Screen):
         )
 
 
-
+        showBtn = Button(
+            text="Show Image",
+            size_hint=(None, None),
+            size=(200, 80),
+            pos_hint={'x': 0.5, 'y': 0.05},
+        )
         leftBtn = Button(
             text="<-",
             size_hint=(None, None),
@@ -187,27 +190,67 @@ class PicturesPage(Screen):
         rightBtn.bind(on_press=self.nextPic)
         leftBtn.bind(on_press=self.prevPic)
         backBtn.bind(on_press=self.goBack)
+        showBtn.bind(on_press=self.showImage)
+
+        
+        self.layout.add_widget(leftBtn)
+        self.layout.add_widget(rightBtn)
+        self.layout.add_widget(backBtn)
+        self.layout.add_widget(showBtn)
+        self.add_widget(self.layout)
 
 
-        layout.add_widget(self.image)
-        layout.add_widget(leftBtn)
-        layout.add_widget(rightBtn)
-        layout.add_widget(backBtn)
-        self.add_widget(layout)
+
 
     def nextPic(self,instance):
-        self.imageNum= (self.imageNum + 1) % len(self.imageArray)
-        self.image.source = self.imageArray[self.imageNum]
-        self.image.reload()
+        if len(self.imageArray)>0 and self.image in self.layout.children:
+            self.imageNum= (self.imageNum + 1) % len(self.imageArray)
+            self.image.source = self.imageArray[self.imageNum]
+            self.image.reload()
     def prevPic(self,instance):
-        self.imageNum= (self.imageNum - 1) % len(self.imageArray)
-        self.image.source = self.imageArray[self.imageNum]
-        self.image.reload()
+        if len(self.imageArray)>0:
+            self.imageNum= (self.imageNum - 1) % len(self.imageArray)
+            self.image.source = self.imageArray[self.imageNum]
+            self.image.reload()
 
     def goBack(self, instance):
         self.manager.current = "menu"
+    def showImage(self, instance):
+        self.imageArray.append(self.getPicture())
+        if not(self.image in self.layout.children):
+           self.layout.add_widget(self.image)
+    def getPicture(self):
 
-# ----------------- APP -----------------
+        try:
+            # Create a unique filename
+            filename = f"received_{len(self.imageArray)}.jpg"
+
+            # Connect to the ESP32 image socket
+            s = socket.socket()
+            s.settimeout(5)
+            s.connect((ESP_IP, PIC_PORT))
+            print("Connected to image server. Receiving image...")
+
+            # Receive the file in chunks
+            with open(filename, "wb") as f:
+                while True:
+                    chunk = s.recv(1024)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+
+            s.close()
+            print(f"Image saved as {filename}")
+            return filename
+
+        except Exception as e:
+            print("Error receiving image:", e)
+            return None
+
+        
+            
+
+#  APP 
 class droneGui(App):
     def build(self):
         sm = ScreenManager()
@@ -216,6 +259,6 @@ class droneGui(App):
         sm.add_widget(PicturesPage(name="pics"))
         return sm
 
-# ----------------- RUN -----------------
+#  RUN 
 if __name__ == "__main__":
     droneGui().run()
