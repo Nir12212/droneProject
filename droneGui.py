@@ -7,6 +7,7 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 import socket
 import json
+import time
  
 
 ESP_IP = "192.168.4.1"
@@ -146,106 +147,68 @@ class PicturesPage(Screen):
         self.layout = FloatLayout()
         self.imageArray = []
         self.imageNum = 0
-        self.image = Image(
-            source = self.imageArray[self.imageNum],
-            allow_stretch=True,
-            keep_ratio=True,
-            size_hint=(0.8, 0.8),
-            pos_hint={'x':0.1, 'y':0.1}
-        )
+        self.imageWidget = Image(allow_stretch=True, keep_ratio=True, size_hint=(0.8, 0.8), pos_hint={'x':0.1, 'y':0.1})
 
+        showBtn = Button(text="Show Image", size_hint=(None, None), size=(200, 80), pos_hint={'x':0.5, 'y':0.05})
+        leftBtn = Button(text="<-", size_hint=(None, None), size=(70, 80), pos_hint={'x':0.05, 'y':0.5})
+        rightBtn = Button(text="->", size_hint=(None, None), size=(70, 80), pos_hint={'x':0.20, 'y':0.5})
+        backBtn = Button(text="Back", size_hint=(None, None), size=(70, 80), pos_hint={'x':0.1, 'y':0.05})
 
-        showBtn = Button(
-            text="Show Image",
-            size_hint=(None, None),
-            size=(200, 80),
-            pos_hint={'x': 0.5, 'y': 0.05},
-        )
-        leftBtn = Button(
-            text="<-",
-            size_hint=(None, None),
-            size=(70, 80),
-            pos_hint={'x': 0.10, 'y': 0.5},
-            background_color=(0, 0.5, 1, 1)
-            )
-
-
-        rightBtn = Button(
-            text="->",
-            size_hint=(None, None),
-            size=(70, 80), 
-            pos_hint={'x': 0.20, 'y': 0.5},
-            background_color=(0, 0.5, 1, 1)
-            )
-
-
-        backBtn = Button(
-            text="back", 
-            size_hint=(None, None), 
-            size=(70, 80), 
-            pos_hint={'x': 0.1, 'y': 0.05},
-            background_color=(0, 0.5, 1, 1)
-            )
-
-        rightBtn.bind(on_press=self.nextPic)
+        showBtn.bind(on_press=self.getPicture)
         leftBtn.bind(on_press=self.prevPic)
+        rightBtn.bind(on_press=self.nextPic)
         backBtn.bind(on_press=self.goBack)
-        showBtn.bind(on_press=self.showImage)
 
-        
+        self.layout.add_widget(showBtn)
         self.layout.add_widget(leftBtn)
         self.layout.add_widget(rightBtn)
         self.layout.add_widget(backBtn)
-        self.layout.add_widget(showBtn)
         self.add_widget(self.layout)
 
-
-
-
-    def nextPic(self,instance):
-        if len(self.imageArray)>0 and self.image in self.layout.children:
-            self.imageNum= (self.imageNum + 1) % len(self.imageArray)
-            self.image.source = self.imageArray[self.imageNum]
-            self.image.reload()
-    def prevPic(self,instance):
-        if len(self.imageArray)>0:
-            self.imageNum= (self.imageNum - 1) % len(self.imageArray)
-            self.image.source = self.imageArray[self.imageNum]
-            self.image.reload()
-
-    def goBack(self, instance):
-        self.manager.current = "menu"
-    def showImage(self, instance):
-        self.imageArray.append(self.getPicture())
-        if not(self.image in self.layout.children):
-           self.layout.add_widget(self.image)
-    def getPicture(self):
-
+    def getPicture(self, instance=None):
+        filename = f"pic_{int(time.time())}.jpg"
         try:
-            # Create a unique filename
-            filename = f"received_{len(self.imageArray)}.jpg"
-
-            # Connect to the ESP32 image socket
             s = socket.socket()
             s.settimeout(5)
             s.connect((ESP_IP, PIC_PORT))
-            print("Connected to image server. Receiving image...")
 
-            # Receive the file in chunks
             with open(filename, "wb") as f:
                 while True:
                     chunk = s.recv(1024)
                     if not chunk:
                         break
                     f.write(chunk)
-
             s.close()
-            print(f"Image saved as {filename}")
-            return filename
+            print(f"Saved image as {filename}")
+
+            # Add to the list and show
+            self.imageArray.append(filename)
+            self.imageNum = len(self.imageArray) - 1
+            self.showImage()
 
         except Exception as e:
-            print("Error receiving image:", e)
-            return None
+            print("Error receiving picture:", e)
+
+    def showImage(self):
+        if len(self.imageArray) > 0:
+            self.imageWidget.source = self.imageArray[self.imageNum]
+            if self.imageWidget not in self.layout.children:
+                self.layout.add_widget(self.imageWidget)
+            self.imageWidget.reload()
+
+    def nextPic(self, instance):
+        if len(self.imageArray) > 0:
+            self.imageNum = (self.imageNum + 1) % len(self.imageArray)
+            self.showImage()
+
+    def prevPic(self, instance):
+        if len(self.imageArray) > 0:
+            self.imageNum = (self.imageNum - 1) % len(self.imageArray)
+            self.showImage()
+
+    def goBack(self, instance):
+        self.manager.current = "menu"
+
 
         
             
