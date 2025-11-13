@@ -58,7 +58,7 @@ class BMP280:
 i2c = I2C(0, sda=Pin(18), scl=Pin(21))
 bmp = BMP280(i2c=i2c, addr=0x76)
 
-dht_pin = Pin(22)
+dht_pin = Pin(19)
 dht_sensor = dht.DHT22(dht_pin)  # Use DHT11(dht_pin) if needed
 
 # ===== LOOP =====
