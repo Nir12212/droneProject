@@ -185,10 +185,15 @@ class PicturesPage(Screen):
         self.layout.add_widget(self.imageWidget)
 
         # Buttons
-        showBtn = Button(text="Show Image", size_hint=(0.2, 0.1), pos_hint={'center_x':0.5, 'y':0.05})
-        leftBtn = Button(text="<-", size_hint=(0.1, 0.1), pos_hint={'x':0.01, 'center_y':0.55})
-        rightBtn = Button(text="->", size_hint=(0.1, 0.1), pos_hint={'right':0.99, 'center_y':0.55})
-        backBtn = Button(text="Back", size_hint=(0.15, 0.1), pos_hint={'x':0.05, 'y':0.05})
+        showBtn = Button(text="Show Image", size_hint=(0.2, 0.1),
+                 pos_hint={'center_x':0.5, 'y':0.04}, background_color=(0.5, 0.8, 1, 1))
+        leftBtn = Button(text="<-", size_hint=(0.08, 0.1),
+                 pos_hint={'x':0.01, 'center_y':0.55}, background_color=(0.5, 0.8, 1, 1))
+        rightBtn = Button(text="->", size_hint=(0.08, 0.1),
+                  pos_hint={'right':0.99, 'center_y':0.55}, background_color=(0.5, 0.8, 1, 1))
+        backBtn = Button(text="Back", size_hint=(0.15, 0.1),
+                 pos_hint={'x':0.05, 'y':0.04}, background_color=(0.5, 0.8, 1, 1))
+
 
         # Bind button actions
         showBtn.bind(on_press=self.getPicture)
