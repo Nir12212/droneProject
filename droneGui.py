@@ -19,7 +19,8 @@ from kivy.core.window import Window
 
 Window.size = (800, 480)
 ESP_IP = "192.168.4.1"
-CAM_STREAM_IP =  "192.168.4.2"
+CAM_STREAM_IP =  "192.168.4.101"
+CAM_PIC_IP = "192.168.4.100"
 DATA_PORT = 1234
 PIC_PORT = 1235
 STREAM_PORT = 1236
@@ -214,7 +215,7 @@ class PicturesPage(Screen):
         try:
             s = socket.socket()
             s.settimeout(5)
-            s.connect((ESP_IP, PIC_PORT))
+            s.connect((CAM_PIC_IP, PIC_PORT))
             with open(filename, "wb") as f:
                 while True:
                     chunk = s.recv(1024)
