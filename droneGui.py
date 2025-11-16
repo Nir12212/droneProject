@@ -19,7 +19,7 @@ from kivy.core.window import Window
 
 Window.size = (800, 480)
 ESP_IP = "192.168.4.1"
-CAM_STREAM_IP =  "172.21.22.172"
+CAM_STREAM_IP =  "192.168.4.2"
 DATA_PORT = 1234
 PIC_PORT = 1235
 STREAM_PORT = 1236
