@@ -9,23 +9,28 @@ class DataPage(Screen):
         super().__init__(**kwargs)
         self.controller = controller
 
-        # Main layout
         layout = FloatLayout()
 
         # Vertical box for labels
         label_box = BoxLayout(orientation='vertical', spacing=10,
                               size_hint=(0.4, 0.5), pos_hint={'x': 0.05, 'top': 0.9})
-        self.tempLabel = Label(text="Temperature:", font_size=20, color=(1,1,1,1))
-        self.humidityLabel = Label(text="Humidity:", font_size=20, color=(1,1,1,1))
-        self.airPressureLabel = Label(text="Air Pressure:", font_size=20, color=(1,1,1,1))
-        self.magneticFieldLabel = Label(text="Magnetic Field:", font_size=20, color=(1,1,1,1))
+
+        # Left-aligned labels
+        self.tempLabel = Label(text="Temperature:", font_size=20, color=(1,1,1,1), halign='left', valign='middle')
+        self.humidityLabel = Label(text="Humidity:", font_size=20, color=(1,1,1,1), halign='left', valign='middle')
+        self.airPressureLabel = Label(text="Air Pressure:", font_size=20, color=(1,1,1,1), halign='left', valign='middle')
+        self.magneticFieldLabel = Label(text="Magnetic Field:", font_size=20, color=(1,1,1,1), halign='left', valign='middle')
+
+        # Make sure labels respect their size
+        for lbl in [self.tempLabel, self.humidityLabel, self.airPressureLabel, self.magneticFieldLabel]:
+            lbl.bind(size=lbl.setter('text_size'))
 
         label_box.add_widget(self.tempLabel)
         label_box.add_widget(self.humidityLabel)
         label_box.add_widget(self.airPressureLabel)
         label_box.add_widget(self.magneticFieldLabel)
 
-        # Horizontal box for buttons at the bottom
+        # Horizontal box for buttons
         button_box = BoxLayout(orientation='horizontal', spacing=20,
                                size_hint=(0.6, 0.15), pos_hint={'center_x': 0.5, 'y': 0.05})
         showDataBtn = Button(text="Show Data", background_color=(0.5,0.8,1,1))
