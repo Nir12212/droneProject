@@ -13,8 +13,13 @@ from PIL import Image as PILImage
 import io
 import threading
 from kivy.clock import Clock
+from kivy.uix.anchorlayout import AnchorLayout
+from kivy.core.window import Window
 
+
+Window.size = (800, 480)
 ESP_IP = "192.168.4.1"
+CAM_STREAM_IP =  "172.21.22.172"
 DATA_PORT = 1234
 PIC_PORT = 1235
 STREAM_PORT = 1236
@@ -22,15 +27,24 @@ STREAM_PORT = 1236
 class MainMenu(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        layout = BoxLayout(orientation="horizontal", padding=20, spacing=15)
+        
+        anchor = AnchorLayout(anchor_x='center', anchor_y='center', size_hint=(1, 1))
 
+        # Horizontal BoxLayout for buttons
+        layout = BoxLayout(orientation="horizontal", spacing=15, size_hint=(None, None))
+
+        button_width = 150
+        button_height = 80
+        layout.width = 3 * button_width + 2 * layout.spacing
+        layout.height = button_height
+        
         dataBtn = Button(
             text="DATA",
             size_hint=(None, None),
             size=(150, 80),
             font_size=20,
             color=(1, 1, 1, 1),
-            background_color=(0, 0.5, 1, 1)
+            background_color=(0.5, 0.8, 1, 1)
         )
         picBtn = Button(
             text="PICTURES",
@@ -38,7 +52,7 @@ class MainMenu(Screen):
             size=(150, 80),
             font_size=20,
             color=(1, 1, 1, 1),
-            background_color=(0, 0.5, 1, 1)
+            background_color=(0.5, 0.8, 1, 1)
         )
         streamBtn = Button(
             text="STREAM",
@@ -46,7 +60,7 @@ class MainMenu(Screen):
             size=(150, 80),
             font_size=20,
             color=(1, 1, 1, 1),
-            background_color=(0, 0.5, 1, 1)
+            background_color=(0.5, 0.8, 1, 1)
         )
         picBtn.bind(on_press=self.goShowPicsPage)
         dataBtn.bind(on_press=self.goDataPage)
@@ -55,7 +69,8 @@ class MainMenu(Screen):
         layout.add_widget(dataBtn)
         layout.add_widget(picBtn)
         layout.add_widget(streamBtn)
-        self.add_widget(layout)
+        anchor.add_widget(layout)
+        self.add_widget(anchor)
 
     def goStreamPage(self,instance):
         self.manager.current = "stream"
@@ -103,7 +118,7 @@ class DataPage(Screen):
             size_hint=(None, None),
             size=(200, 80),
             pos_hint={'x': 0.5, 'y': 0.05},
-            background_color=(0, 0.5, 1, 1)
+            background_color=(0.5, 0.8, 1, 1)
         )
 
         backBtn = Button(
@@ -111,7 +126,7 @@ class DataPage(Screen):
             size_hint=(None, None),
             size=(70, 80),
             pos_hint={'x': 0.10, 'y': 0.05},
-            background_color=(0, 0.5, 1, 1)
+            background_color=(0.5, 0.8, 1, 1)
         )
         backBtn.bind(on_press=self.goBack)
         showDataBtn.bind(on_press=self.getData)
@@ -163,22 +178,30 @@ class PicturesPage(Screen):
         self.layout = FloatLayout()
         self.imageArray = []
         self.imageNum = 0
-        self.imageWidget = Image(allow_stretch=True, keep_ratio=True, size_hint=(0.8, 0.8), pos_hint={'x':0.1, 'y':0.1})
 
-        showBtn = Button(text="Show Image", size_hint=(None, None), size=(200, 80), pos_hint={'x':0.5, 'y':0.05})
-        leftBtn = Button(text="<-", size_hint=(None, None), size=(70, 80), pos_hint={'x':0.05, 'y':0.5})
-        rightBtn = Button(text="->", size_hint=(None, None), size=(70, 80), pos_hint={'x':0.20, 'y':0.5})
-        backBtn = Button(text="Back", size_hint=(None, None), size=(70, 80), pos_hint={'x':0.1, 'y':0.05})
+        # Image widget in center
+        self.imageWidget = Image(allow_stretch=True, keep_ratio=True,
+                                 size_hint=(0.8, 0.8), pos_hint={'center_x':0.5, 'center_y':0.55})
+        self.layout.add_widget(self.imageWidget)
 
+        # Buttons
+        showBtn = Button(text="Show Image", size_hint=(0.2, 0.1), pos_hint={'center_x':0.5, 'y':0.05})
+        leftBtn = Button(text="<-", size_hint=(0.1, 0.1), pos_hint={'x':0.01, 'center_y':0.55})
+        rightBtn = Button(text="->", size_hint=(0.1, 0.1), pos_hint={'right':0.99, 'center_y':0.55})
+        backBtn = Button(text="Back", size_hint=(0.15, 0.1), pos_hint={'x':0.05, 'y':0.05})
+
+        # Bind button actions
         showBtn.bind(on_press=self.getPicture)
         leftBtn.bind(on_press=self.prevPic)
         rightBtn.bind(on_press=self.nextPic)
         backBtn.bind(on_press=self.goBack)
 
+        # Add buttons to layout
         self.layout.add_widget(showBtn)
         self.layout.add_widget(leftBtn)
         self.layout.add_widget(rightBtn)
         self.layout.add_widget(backBtn)
+
         self.add_widget(self.layout)
 
     def getPicture(self, instance=None):
@@ -187,7 +210,6 @@ class PicturesPage(Screen):
             s = socket.socket()
             s.settimeout(5)
             s.connect((ESP_IP, PIC_PORT))
-
             with open(filename, "wb") as f:
                 while True:
                     chunk = s.recv(1024)
@@ -197,28 +219,25 @@ class PicturesPage(Screen):
             s.close()
             print(f"Saved image as {filename}")
 
-            # Add to the list and show
+            # Add to list and show
             self.imageArray.append(filename)
             self.imageNum = len(self.imageArray) - 1
             self.showImage()
-
         except Exception as e:
             print("Error receiving picture:", e)
 
     def showImage(self):
-        if len(self.imageArray) > 0:
+        if self.imageArray:
             self.imageWidget.source = self.imageArray[self.imageNum]
-            if self.imageWidget not in self.layout.children:
-                self.layout.add_widget(self.imageWidget)
             self.imageWidget.reload()
 
     def nextPic(self, instance):
-        if len(self.imageArray) > 0:
+        if self.imageArray:
             self.imageNum = (self.imageNum + 1) % len(self.imageArray)
             self.showImage()
 
     def prevPic(self, instance):
-        if len(self.imageArray) > 0:
+        if self.imageArray:
             self.imageNum = (self.imageNum - 1) % len(self.imageArray)
             self.showImage()
 
@@ -229,55 +248,42 @@ class PicturesPage(Screen):
 class StreamPage(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.layout = FloatLayout()
 
-        # Image widget
-        self.stream_image = Image(
-            allow_stretch=False,
-            keep_ratio=True,
-            size_hint=(0.8, 0.8),
-            pos_hint={'x': 0.1, 'y': 0.15}
-        )
+        # Main vertical layout
+        main_layout = BoxLayout(orientation='vertical', spacing=10, padding=10)
 
-        # Start button
-        startBtn = Button(
-            text="start",
-            size_hint=(None, None),
-            size=(200, 80),
-            pos_hint={'x': 0.60, 'y': 0.05},
-            background_color=(0, 0.5, 1, 1)
-        )
+        # AnchorLayout for centering the image
+        image_anchor = AnchorLayout(anchor_x='center', anchor_y='center', size_hint=(1, 0.8))
+        self.stream_image = Image(allow_stretch=True, keep_ratio=True)
+        image_anchor.add_widget(self.stream_image)
 
-        # Back button
-        backBtn = Button(
-            text="back",
-            size_hint=(None, None),
-            size=(70, 80),
-            pos_hint={'x': 0.10, 'y': 0.05},
-            background_color=(0, 0.5, 1, 1)
-        )
+        # Horizontal layout for bottom buttons
+        button_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.2), spacing=20, padding=[20,0,20,0])
+        backBtn = Button(text="Back", font_size=20, background_color=(0.5,0.8,1,1))
+        startBtn = Button(text="Start", font_size=20, background_color=(0.5,0.8,1,1))
+        button_layout.add_widget(backBtn)
+        button_layout.add_widget(startBtn)
 
         # Bind buttons
         backBtn.bind(on_press=self.goBack)
         startBtn.bind(on_press=self.start_streaming)
 
-        # Add widgets
-        self.layout.add_widget(startBtn)
-        self.layout.add_widget(backBtn)
-        self.layout.add_widget(self.stream_image)
-        self.add_widget(self.layout)
+        # Add widgets to main layout
+        main_layout.add_widget(image_anchor)
+        main_layout.add_widget(button_layout)
+
+        self.add_widget(main_layout)
 
     def goBack(self, instance):
         self.manager.current = "menu"
 
     def start_streaming(self, instance):
-        # Run streaming in a separate thread
         threading.Thread(target=self.stream_thread, daemon=True).start()
 
     def stream_thread(self):
         try:
             s = socket.socket()
-            s.connect((ESP_IP, STREAM_PORT))
+            s.connect((CAM_STREAM_IP, STREAM_PORT))
             while True:
                 size_data = s.recv(4)
                 if not size_data:
@@ -292,7 +298,6 @@ class StreamPage(Screen):
                 with open(filename, "wb") as f:
                     f.write(buf)
 
-                # Schedule update on the main thread
                 Clock.schedule_once(lambda dt, fn=filename: self.update_image(fn))
         except Exception as e:
             print("Stream error:", e)
