@@ -23,3 +23,7 @@ class DroneController:
     # STREAM
     def start_stream(self, callback):
         self.stream.start_stream(callback)
+        
+    def stop_stream(self,callback):
+        self.stream.stop_stream(callback)
+    

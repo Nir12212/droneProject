@@ -36,10 +36,21 @@ class StreamPage(Screen):
     def start_stream(self, instance):
         if self.controller:
             self.controller.start_stream(self.update_image)
+    def stop_stream(self, instance):
+        if self.controller:
+            self.controller.stop_stream(self.update_image)
 
     def update_image(self, filename):
         self.stream_img.source = filename
         self.stream_img.reload()
 
     def go_back(self, instance):
+        self.stop_stream(instance)
+        self.reset_image()
         self.manager.current = "menu"
+        
+    def reset_image(self):
+        self.stream_img.source = ""
+        self.stream_img.color = (1, 1, 1, 1)   # pure white
+        self.stream_img.canvas.ask_update()
+
