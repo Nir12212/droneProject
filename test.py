@@ -2,26 +2,44 @@ import machine
 import time
 from sbus import SBUSReceiver
 
-ENA_PIN = 14
-IN1_PIN = 26
-IN2_PIN = 27
+# ---------------- 4 MOTOR L298N PINS ----------------
+# Motor A (Left Front)
+ENA1_PIN = 14   # PWM
+IN1A_PIN = 26   # Direction
+IN2A_PIN = 27   
+
+# Motor B (Left Rear) 
+ENB1_PIN = 13   # PWM
+IN3A_PIN = 25   # Direction
+IN4A_PIN = 33   
+
+# Motor C (Right Front)
+ENA2_PIN = 12   # PWM
+IN1B_PIN = 32   # Direction
+IN2B_PIN = 15   
+
+# Motor D (Right Rear)
+ENB2_PIN = 2    # PWM
+IN3B_PIN = 4    # Direction
+IN4B_PIN = 5    
+
 SBUS_PIN = 16
 
 class ControllerChannels:
     def __init__(self, channels):
         self.raw = channels
-        self.ch1 = channels[0]  # Left:172 Right:1811 Idle:992
-        self.ch2 = channels[1]  # Fwd:1811 Back:172 Idle:984  
+        self.ch1 = channels[0]  # Left:172 Right:1811 Idle:992 (Steering)
+        self.ch2 = channels[1]  # Fwd:1811 Back:172 Idle:984 (Forward/Back)
         self.ch3 = channels[2]  # Throttle:172(stop)-1811(max)
-        self.ch4 = channels[3]  # Spin L:172 R:1811 Idle:968
+        self.ch4 = channels[3]  # Spin L:172 R:1811 Idle:968 (Tank Spin)
         self.ch5 = channels[4]  # Car:992 Drone:1237
     
-    def ch1_left_right(self):
-        """CH1: 172=left(-1), 992=idle(0), 1811=right(+1)"""
+    def ch1_steer(self):
+        """CH1: 172=left(-1), 992=straight(0), 1811=right(+1)"""
         return max(-1, min(1, (self.ch1 - 992) / (1811 - 992)))
     
-    def ch2_forward_back(self):
-        """CH2: 172=back(-1), 984=idle(0), 1811=forward(+1)"""
+    def ch2_drive(self):
+        """CH2: 172=back(-1), 984=stop(0), 1811=forward(+1)"""
         return max(-1, min(1, (self.ch2 - 984) / (1811 - 984)))
     
     def ch3_throttle(self):
@@ -33,39 +51,51 @@ class ControllerChannels:
         return max(-1, min(1, (self.ch4 - 968) / (1811 - 968)))
     
     def ch5_mode(self):
-        """CH5: 992=car, 1237=drone → returns 'CAR' or 'DRONE'"""
         return "CAR" if self.ch5 <= 1100 else "DRONE"
     
-    def get_xyz(self):
-        """Stick position: x=ch1 left/right, y=ch2 fwd/bk, z=magnitude"""
-        x = self.ch1_left_right()
-        y = self.ch2_forward_back()
-        z = (x*x + y*y) ** 0.5
-        return x, y, z
-    
     def is_valid_signal(self):
-        """All channels in valid SBUS range"""
         return all(172 <= ch <= 1811 for ch in self.raw[:5])
 
-# Hardware
-pwm = machine.PWM(machine.Pin(ENA_PIN), freq=2000)
-in1 = machine.Pin(IN1_PIN, machine.Pin.OUT)
-in2 = machine.Pin(IN2_PIN, machine.Pin.OUT)
+class Motor:
+    """Single L298N motor control"""
+    def __init__(self, ena_pin, in1_pin, in2_pin):
+        self.pwm = machine.PWM(machine.Pin(ena_pin), freq=2000)
+        self.in1 = machine.Pin(in1_pin, machine.Pin.OUT)
+        self.in2 = machine.Pin(in2_pin, machine.Pin.OUT)
+    
+    def set_speed_dir(self, speed, direction):
+        """speed: 0-1023, direction: -1=reverse, 0=stop, 1=forward"""
+        speed = max(0, min(1023, abs(int(speed))))
+        self.pwm.duty(speed)
+        
+        if direction > 0:        # Forward
+            self.in1.value(1)
+            self.in2.value(0)
+        elif direction < 0:      # Reverse
+            self.in1.value(0)
+            self.in2.value(1)
+        else:                    # Stop
+            self.in1.value(0)
+            self.in2.value(0)
+
+# ---------------- HARDWARE SETUP ----------------
+# 4 Motors
+motor_lf = Motor(ENA1_PIN, IN1A_PIN, IN2A_PIN)  # Left Front
+motor_lr = Motor(ENB1_PIN, IN3A_PIN, IN4A_PIN)  # Left Rear
+motor_rf = Motor(ENA2_PIN, IN1B_PIN, IN2B_PIN)  # Right Front
+motor_rr = Motor(ENB2_PIN, IN3B_PIN, IN4B_PIN)  # Right Rear
+
 sbus = SBUSReceiver(2, rx_pin=SBUS_PIN)
 
-def set_motor(speed, direction):
-    if speed > 1023: speed = 1023
-    if speed < 0: speed = 0
-    pwm.duty(int(speed))
-    if direction == 1:
-        in1.value(1); in2.value(0)
-    elif direction == -1:
-        in1.value(0); in2.value(1)
-    else:
-        in1.value(0); in2.value(0)
+def tank_drive(left_speed, right_speed):
+    """Drive 4 motors tank-style"""
+    motor_lf.set_speed_dir(left_speed, 1 if left_speed > 0 else -1 if left_speed < 0 else 0)
+    motor_lr.set_speed_dir(left_speed, 1 if left_speed > 0 else -1 if left_speed < 0 else 0)
+    motor_rf.set_speed_dir(right_speed, 1 if right_speed > 0 else -1 if right_speed < 0 else 0)
+    motor_rr.set_speed_dir(right_speed, 1 if right_speed > 0 else -1 if right_speed < 0 else 0)
 
-print("CHANNEL FUNCTIONS ACTIVE!")
-print("ch1_left_right()  ch2_forward_back()  ch3_throttle()  ch4_spin()  ch5_mode()")
+print("4-MOTOR TANK DRIVE + QX7 READY!")
+print("CH2=Drive, CH1=Steer, CH3=Speed, CH4=Spin, CH5=CAR/DRONE")
 print_counter = 0
 
 while True:
@@ -74,29 +104,36 @@ while True:
     ctrl = ControllerChannels(channels)
     
     # Failsafe
-    if not ctrl.is_valid_signal():
-        set_motor(0, 0)
+    if not ctrl.is_valid_signal() or ctrl.ch5_mode() == "DRONE":
+        tank_drive(0, 0)
         if print_counter >= 10:
-            print("*** NO SIGNAL - STOP ***")
+            print("*** STOPPED (No Signal/DRONE) ***")
         continue
     
-    # Motor control using ch3_throttle() and ch5_mode()
-    if ctrl.ch5_mode() == "CAR":
-        speed = int(ctrl.ch3_throttle() * 1023)
-        set_motor(speed, 1)
-    else:
-        set_motor(0, 0)
+    # TANK DRIVE CONTROL
+    drive = ctrl.ch2_drive()      # Forward/back (-1 to +1)
+    steer = ctrl.ch1_steer()      # Left/right (-1 to +1)
+    throttle = ctrl.ch3_throttle() # Overall speed boost (0-1)
     
-    # Print using channel functions
+    # Mix drive + steer → differential speeds
+    left_speed = drive * throttle * 1023
+    right_speed = drive * throttle * 1023
+    
+    # Apply steering (tank turn)
+    turn_amount = steer * 512  # Max 50% speed difference
+    left_speed -= turn_amount
+    right_speed += turn_amount
+    
+    tank_drive(left_speed, right_speed)
+    
+    # Status
     print_counter += 1
     if print_counter >= 10:
         print_counter = 0
-        x, y, z = ctrl.get_xyz()
-        mode = ctrl.ch5_mode()
-        throttle = ctrl.ch3_throttle()
         spin = ctrl.ch4_spin()
-        speed = int(throttle * 1023)
-        print(f"Raw: {ctrl.ch1:4} {ctrl.ch2:4} {ctrl.ch3:4} {ctrl.ch4:4} {ctrl.ch5:4} | "
-              f"LR:{x:.2f} FB:{y:.2f} TH:{throttle:.2f} SP:{spin:.2f} | {mode} SPD:{speed:3}")
+        x, y, z = ctrl.ch1_steer(), ctrl.ch2_drive(), abs(drive)
+        print(f"CH1:{ctrl.ch1:4} CH2:{ctrl.ch2:4} CH3:{ctrl.ch3:4} | "
+              f"L:{left_speed:5.0f} R:{right_speed:5.0f} | "
+              f"Steer:{x:.2f} Drive:{y:.2f} Thr:{throttle:.2f}")
     
     time.sleep_ms(10)
