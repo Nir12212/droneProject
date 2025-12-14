@@ -1,7 +1,7 @@
 from machine import Pin, I2C
 import dht
 from ustruct import unpack
-
+import QMC5883L
 class BMP280:
     def __init__(self, i2c, addr=0x76):
         self.i2c = i2c
@@ -54,8 +54,13 @@ def read_all():
     i2c = I2C(0, sda=Pin(18), scl=Pin(21))
     bmp = BMP280(i2c, addr=0x76)
     dht_sensor = dht.DHT22(Pin(19))
-
+    i2c1=I2C(0,scl=Pin(23),sda=Pin(22),freq=400000)
+    sensor=hmc5883l.HMC5883L(i2c1,0x1E)
+    
     bmp_temp, bmp_pres = bmp.read()
+    x,y,z=sensor.read()
+    heading=sensor.heading()
+
 
     try:
         dht_sensor.measure()
@@ -64,7 +69,7 @@ def read_all():
     except:
         dht_temp = None
         dht_hum = None
-
+        
     # Average temperature
     if dht_temp is not None:
         avg = (bmp_temp + dht_temp) / 2
@@ -75,5 +80,7 @@ def read_all():
         round(avg, 2),
         round(dht_hum, 2) if dht_hum is not None else None,
         round(bmp_pres, 2),
-        1
+        round(x, 2),
+        round(y, 2),
+        round(z, 2)
     ]
