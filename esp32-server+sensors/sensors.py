@@ -78,9 +78,10 @@ def read_all():
 
     return [
         round(avg, 2),
-        round(dht_hum, 2) if dht_hum is not None else None,
+        round(dht_hum, 2),
         round(bmp_pres, 2),
         round(x, 2),
         round(y, 2),
         round(z, 2)
     ]
+
