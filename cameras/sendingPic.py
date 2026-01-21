@@ -3,9 +3,9 @@ import camera
 import socket
 import time
 
-IP = "192.168.4.100"      # pick an unused IP in your AP subnet
+IP = "192.168.4.100"     
 SUBNET = "255.255.255.0"
-GATEWAY = "192.168.4.1"   # usually your AP’s IP
+GATEWAY = "192.168.4.1"   #AP IP
 DNS = "192.168.4.1"
 # -------------------- CONFIGURATION --------------------
 SSID = "MY_WIFI"
@@ -67,3 +67,4 @@ while True:
     except Exception as e:
         print("Server error:", e)
         time.sleep(1)
+
