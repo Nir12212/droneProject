@@ -125,3 +125,4 @@ while True:
     print(data)
     time.sleep(0.2)  # Wait 0.2 seconds between readings
 
+
