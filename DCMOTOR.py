@@ -10,9 +10,9 @@ class motor:
     def turn_to(self,turn,speed):
         if turn==0:
             self.ena.duty(int(1023*speed/100))
-            self.enb.duty(int(1023*speed/300))
+            self.enb.duty(int(1023*speed/400))
         elif turn==1:
-            self.ena.duty(int(1023*speed/300))
+            self.ena.duty(int(1023*speed/400))
             self.enb.duty(int(1023*speed/100))
         else:
             self.ena.duty(int(1023*speed/100))
@@ -32,4 +32,5 @@ class motor:
             self.in1.value(0)
             self.in2.value(0)
             self.in3.value(0)
+
             self.in4.value(0)
