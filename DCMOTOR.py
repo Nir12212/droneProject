@@ -32,5 +32,5 @@ class motor:
             self.in1.value(0)
             self.in2.value(0)
             self.in3.value(0)
-
             self.in4.value(0)
+
