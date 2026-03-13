@@ -2,24 +2,7 @@ from machine import Pin, PWM, ADC
 from time import sleep, sleep_ms
 import DCMOTOR
 from SBUS import SBUSReceiver
-#------stepper-----------------------
-in1s=Pin(12,Pin.OUT)
-in2s=Pin(14,Pin.OUT)
-in3s=Pin(26,Pin.OUT)
-in4s=Pin(27,Pin.OUT)
-pins=[in1s,in2s,in3s,in4s]
-sequence=[
-    [1,0,0,0],
-    [1,1,0,0],
-    [0,1,0,0],
-    [0,1,1,0],
-    [0,0,1,0],
-    [0,0,1,1],
-    [0,0,0,1],
-    [1,0,0,1]
-]
-steps=5010
-delay=0.001
+
 def step_motor(steps,direction):
     seq_len=len(sequence)
     step_index=0
@@ -30,8 +13,6 @@ def step_motor(steps,direction):
         step_index=(step_index+direction)%seq_len
     for pin in pins:
         pin.value(0)
-step_dir = 1
-step_armed = True
 #--------FrSKY------------------
 sbus = SBUSReceiver(uart_id=1, rx_pin=16)
 def get_controls():
@@ -58,9 +39,28 @@ ena.freq(1000)
 enb.freq(1000)
 enc.freq(1000)
 end.freq(1000)
-
 motor_f=DCMOTOR.motor(in1,in2,ena,in5,in6,enc)
 motor_b=DCMOTOR.motor(in3,in4,enb,in7,in8,end)
+#--------------stepper------------------
+in1s=Pin(12,Pin.OUT)
+in2s=Pin(14,Pin.OUT)
+in3s=Pin(26,Pin.OUT)
+in4s=Pin(27,Pin.OUT)
+pins=[in1s,in2s,in3s,in4s]
+sequence=[
+    [1,0,0,0],
+    [1,1,0,0],
+    [0,1,0,0],
+    [0,1,1,0],
+    [0,0,1,0],
+    [0,0,1,1],
+    [0,0,0,1],
+    [1,0,0,1]
+]
+steps=5010
+delay=0.001
+step_dir=1
+step_armed=True
 
 while True:
 #---get channels------------
