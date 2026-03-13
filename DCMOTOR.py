@@ -33,4 +33,3 @@ class motor:
             self.in2.value(0)
             self.in3.value(0)
             self.in4.value(0)
-
