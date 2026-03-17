@@ -14,8 +14,6 @@ class SBUSReceiver:
         )
         self.buf = bytearray(self.SBUS_FRAME_LEN)
         self.channels = [0] * 16
-        self.failsafe = False
-        self.frame_lost = False
 
     def _decode_frame(self, data):
         if data[0] != 0x0F:
@@ -38,19 +36,14 @@ class SBUSReceiver:
         ch[14]= ((data[20] >> 2 | data[21] << 6) & 0x07FF)
         ch[15]= ((data[21] >> 5 | data[22] << 3) & 0x07FF)
         self.channels = ch
-        flags = data[23]
-        self.frame_lost = bool(flags & 0x04)
-        self.failsafe   = bool(flags & 0x08)
+        return True
     def read(self):
-        if self.uart.any() < self.SBUS_FRAME_LEN:
-            return False
         while self.uart.any() >= self.SBUS_FRAME_LEN:
             self.uart.readinto(self.buf)
             if self.buf[0] == 0x0F and self.buf[24] == 0x00:
                 if self._decode_frame(self.buf):
                     return True
             self.uart.read(1)
-        return False
 
     def get_channel(self, ch_idx):
         if 1 <= ch_idx <= 16:
