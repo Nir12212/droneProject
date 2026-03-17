@@ -57,7 +57,7 @@ sequence=[
     [0,0,0,1],
     [1,0,0,1]
 ]
-steps=5010
+steps=4110
 delay=0.001
 step_dir=1
 step_armed=True
