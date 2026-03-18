@@ -1,4 +1,4 @@
-from machine import Pin, PWM, ADC
+from machine import Pin, PWM
 from time import sleep, sleep_ms
 import DCMOTOR
 from SBUS import SBUSReceiver
@@ -74,8 +74,7 @@ while True:
             step_dir = -step_dir 
             step_armed = False
     else:
-        step_armed = True
-        
+        step_armed = True        
 #------speed controll-----------
     ch3=ch3-172
     if ch3>1639:
@@ -83,8 +82,7 @@ while True:
         print(1)
     elif ch3<0:
         ch3=0
-    velocity=int((ch3/1639)*100)
-    
+    velocity=int((ch3/1639)*100)  
 #-------left/right--------------
     if ch1>1020:
         turn=1
