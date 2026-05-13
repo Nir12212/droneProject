@@ -4,7 +4,7 @@ import dht
 # from bmp280 import BMP280
 from qmc5883l import QMC5883L
 
-i2c1=I2C(0, scl=Pin(16), sda=Pin(22))
+i2c1=I2C(0, scl=Pin(23), sda=Pin(22))
 #i2c1=I2C(1, scl=Pin(18), sda=Pin(21))
 mag= QMC5883L(i2c1)
 #bmp=BM280(i2c2)
